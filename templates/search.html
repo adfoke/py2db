@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}搜索 - message Display{% endblock %}
+
+{% block content %}
+<section class="surface-grid content-shell">
+    <div class="panel">
+        <div class="panel-inner">
+            <div class="panel-heading">
+                <div>
+                    <h2 class="panel-title">检索条件</h2>
+                    <div class="panel-subtitle">支持关键词和日期组合查询。</div>
+                </div>
+            </div>
+            <form method="get" action="{{ url_for('search') }}">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label for="query" class="form-label">关键词</label>
+                        <input type="text" class="form-control" id="query" name="query" value="{{ query if query is defined else '' }}" placeholder="用户名或内容">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="start_date" class="form-label">开始日期</label>
+                        <input type="date" class="form-control" id="start_date" name="start_date" value="{{ start_date if start_date is defined else '' }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="end_date" class="form-label">结束日期</label>
+                        <input type="date" class="form-control" id="end_date" name="end_date" value="{{ end_date if end_date is defined else '' }}">
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <label class="select-chip" for="onlymedia" style="width: 100%; justify-content: center; min-height: 46px;">
+                            <input type="checkbox" id="onlymedia" name="onlymedia" value="1" class="form-check-input" {% if onlymedia %}checked{% endif %}>
+                            <span>onlymedia</span>
+                        </label>
+                    </div>
+                    <div class="col-md-1 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">搜索</button>
+                    </div>
+                </div>
+            </form>
+
+            {% if tweets %}
+                <form method="post" action="{{ url_for('batch_delete') }}" id="batch-delete-form" style="margin-top: 24px;">
+                    <input type="hidden" name="next" class="return-to-current">
+                    <div class="toolbar">
+                        <div>
+                            <h2 class="panel-title">搜索结果</h2>
+                            <div class="toolbar-note">共找到 {{ result_count }} 条，可直接在结果页批量删除或逐条编辑。</div>
+                        </div>
+                        <div class="toolbar-actions">
+                            <label class="select-chip" for="select-all">
+                                <input type="checkbox" id="select-all" class="form-check-input">
+                                <span>全选结果</span>
+                            </label>
+                            <button type="submit" class="btn btn-danger" onclick="return confirm('确认删除选中的消息？')">批量删除</button>
+                        </div>
+                    </div>
+
+                    <div class="tweet-feed">
+                        {% for tweet in tweets %}
+                            {% include "_tweet_card.html" %}
+                        {% endfor %}
+                    </div>
+                </form>
+
+                {% if total_pages > 1 %}
+                    <nav aria-label="Search navigation" style="margin-top: 20px;">
+                        <ul class="pagination">
+                            {% if page > 1 %}
+                                <li class="page-item"><a class="page-link" href="{{ url_for('search', page=page-1, query=query, start_date=start_date, end_date=end_date, onlymedia='1' if onlymedia else None) }}">上一页</a></li>
+                            {% endif %}
+                            {% set start_page = [1, page - 2] | max %}
+                            {% set end_page = [total_pages, page + 2] | min %}
+                            {% if start_page > 1 %}
+                                <li class="page-item"><a class="page-link" href="{{ url_for('search', page=1, query=query, start_date=start_date, end_date=end_date, onlymedia='1' if onlymedia else None) }}">1</a></li>
+                                {% if start_page > 2 %}
+                                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                                {% endif %}
+                            {% endif %}
+                            {% for p in range(start_page, end_page + 1) %}
+                                <li class="page-item {% if p == page %}active{% endif %}"><a class="page-link" href="{{ url_for('search', page=p, query=query, start_date=start_date, end_date=end_date, onlymedia='1' if onlymedia else None) }}">{{ p }}</a></li>
+                            {% endfor %}
+                            {% if end_page < total_pages %}
+                                {% if end_page < total_pages - 1 %}
+                                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                                {% endif %}
+                                <li class="page-item"><a class="page-link" href="{{ url_for('search', page=total_pages, query=query, start_date=start_date, end_date=end_date, onlymedia='1' if onlymedia else None) }}">{{ total_pages }}</a></li>
+                            {% endif %}
+                            {% if page < total_pages %}
+                                <li class="page-item"><a class="page-link" href="{{ url_for('search', page=page+1, query=query, start_date=start_date, end_date=end_date, onlymedia='1' if onlymedia else None) }}">下一页</a></li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                {% endif %}
+            {% elif has_filters %}
+                <div class="empty-state" style="margin-top: 24px;">
+                    <p>当前条件下没有匹配结果。可以放宽关键词、调整时间范围，或者取消 `onlymedia` 再试。</p>
+                </div>
+            {% else %}
+                <div class="empty-state" style="margin-top: 24px;">
+                    <p>输入关键词或日期范围后开始查询。这个页面会更适合做定向清理，而不是逐页翻找。</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+</section>
+
+<form id="delete-form" method="post" style="display: none;"></form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.return-to-current').forEach((input) => {
+    input.value = window.location.pathname + window.location.search;
+});
+
+function deleteTweet(id) {
+    if (confirm('确认删除这条消息？')) {
+        const form = document.getElementById('delete-form');
+        form.action = '/delete/' + id;
+        let nextInput = form.querySelector('input[name="next"]');
+        if (!nextInput) {
+            nextInput = document.createElement('input');
+            nextInput.type = 'hidden';
+            nextInput.name = 'next';
+            form.appendChild(nextInput);
+        }
+        nextInput.value = window.location.pathname + window.location.search;
+        form.submit();
+    }
+}
+
+const selectAll = document.getElementById('select-all');
+if (selectAll) {
+    selectAll.addEventListener('change', function() {
+        const checkboxes = document.querySelectorAll('.tweet-checkbox');
+        checkboxes.forEach((cb) => {
+            cb.checked = this.checked;
+        });
+    });
+}
+</script>
+{% endblock %}

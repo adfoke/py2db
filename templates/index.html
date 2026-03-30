@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}首页 - message Display{% endblock %}
+
+{% block content %}
+<section class="page-hero home-hero">
+    <span class="page-kicker">Timeline</span>
+    <h1 class="page-title">消息列表</h1>
+    <div class="hero-metrics">
+        <div class="metric-pill">
+            <span class="metric-value">{{ total }}</span>
+            <span class="metric-label">总消息数</span>
+        </div>
+        <div class="metric-pill">
+            <span class="metric-value">{{ page }}</span>
+            <span class="metric-label">当前页</span>
+        </div>
+        <div class="metric-pill">
+            <span class="metric-value">{{ total_pages or 1 }}</span>
+            <span class="metric-label">总页数</span>
+        </div>
+        <div class="metric-pill">
+            <span class="metric-value">{{ tweets|length }}</span>
+            <span class="metric-label">本页展示</span>
+        </div>
+    </div>
+</section>
+
+<section class="home-layout">
+    <div class="panel home-main">
+        <div class="panel-inner">
+            <form method="get" action="{{ url_for('index') }}" style="margin-bottom: 20px;">
+                <div class="toolbar">
+                    <div>
+                        <h2 class="panel-title">筛选</h2>
+                        <div class="toolbar-note">勾选后只显示带图片或视频的消息。</div>
+                    </div>
+                    <div class="toolbar-actions">
+                        <label class="select-chip" for="onlymedia">
+                            <input type="checkbox" id="onlymedia" name="onlymedia" value="1" class="form-check-input" {% if onlymedia %}checked{% endif %}>
+                            <span>onlymedia</span>
+                        </label>
+                        <button type="submit" class="btn btn-secondary">应用</button>
+                    </div>
+                </div>
+            </form>
+
+            {% if tweets %}
+                <form method="post" action="{{ url_for('batch_delete') }}" id="batch-delete-form">
+                    <input type="hidden" name="next" class="return-to-current">
+                    <div class="toolbar">
+                        <div>
+                            <h2 class="panel-title">内容流</h2>
+                            <div class="toolbar-note">按时间倒序排列，支持当前页全选和单条操作。</div>
+                        </div>
+                        <div class="toolbar-actions">
+                            <a href="{{ url_for('add_tweet') }}" class="btn btn-secondary">新增消息</a>
+                            <label class="select-chip" for="select-all">
+                                <input type="checkbox" id="select-all" class="form-check-input">
+                                <span>全选当前页</span>
+                            </label>
+                            <button type="submit" class="btn btn-danger" onclick="return confirm('确认删除选中的消息？')">批量删除</button>
+                        </div>
+                    </div>
+
+                    <div class="tweet-feed">
+                        {% for tweet in tweets %}
+                            {% include "_tweet_card.html" %}
+                        {% endfor %}
+                    </div>
+                </form>
+
+                <nav aria-label="Page navigation">
+                    <ul class="pagination">
+                        {% if page > 1 %}
+                            <li class="page-item"><a class="page-link" href="{{ url_for('index', page=page-1, onlymedia='1' if onlymedia else None) }}">上一页</a></li>
+                        {% endif %}
+                        {% set start_page = [1, page - 2] | max %}
+                        {% set end_page = [total_pages, page + 2] | min %}
+                        {% if start_page > 1 %}
+                            <li class="page-item"><a class="page-link" href="{{ url_for('index', page=1, onlymedia='1' if onlymedia else None) }}">1</a></li>
+                            {% if start_page > 2 %}
+                                <li class="page-item disabled"><span class="page-link">...</span></li>
+                            {% endif %}
+                        {% endif %}
+                        {% for p in range(start_page, end_page + 1) %}
+                            <li class="page-item {% if p == page %}active{% endif %}"><a class="page-link" href="{{ url_for('index', page=p, onlymedia='1' if onlymedia else None) }}">{{ p }}</a></li>
+                        {% endfor %}
+                        {% if end_page < total_pages %}
+                            {% if end_page < total_pages - 1 %}
+                                <li class="page-item disabled"><span class="page-link">...</span></li>
+                            {% endif %}
+                            <li class="page-item"><a class="page-link" href="{{ url_for('index', page=total_pages, onlymedia='1' if onlymedia else None) }}">{{ total_pages }}</a></li>
+                        {% endif %}
+                        {% if page < total_pages %}
+                            <li class="page-item"><a class="page-link" href="{{ url_for('index', page=page+1, onlymedia='1' if onlymedia else None) }}">下一页</a></li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            {% else %}
+                <div class="empty-state">
+                    <p>{% if onlymedia %}当前没有带图片或视频的消息。{% else %}还没有消息数据。可以先去新增页面手动录入，或者到导入页面批量抓取。{% endif %}</p>
+                    <div class="toolbar-actions" style="margin-top: 16px;">
+                        <a href="{{ url_for('add_tweet') }}" class="btn btn-primary">新增消息</a>
+                        <a href="{{ url_for('import_data') }}" class="btn btn-outline-light-surface">去导入</a>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<form id="delete-form" method="post" style="display: none;"></form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.return-to-current').forEach((input) => {
+    input.value = window.location.pathname + window.location.search;
+});
+
+function deleteTweet(id) {
+    if (confirm('确认删除这条消息？')) {
+        const form = document.getElementById('delete-form');
+        form.action = '/delete/' + id;
+        let nextInput = form.querySelector('input[name="next"]');
+        if (!nextInput) {
+            nextInput = document.createElement('input');
+            nextInput.type = 'hidden';
+            nextInput.name = 'next';
+            form.appendChild(nextInput);
+        }
+        nextInput.value = window.location.pathname + window.location.search;
+        form.submit();
+    }
+}
+
+const selectAll = document.getElementById('select-all');
+if (selectAll) {
+    selectAll.addEventListener('change', function() {
+        const checkboxes = document.querySelectorAll('.tweet-checkbox');
+        checkboxes.forEach((cb) => {
+            cb.checked = this.checked;
+        });
+    });
+}
+</script>
+{% endblock %}

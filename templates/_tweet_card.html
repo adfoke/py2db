@@ -1,0 +1,52 @@
+<article class="tweet-card">
+    <div class="tweet-card-top">
+        <div class="tweet-meta">
+            <span class="user-handle">@{{ tweet.user }}</span>
+            <span class="tweet-time">{{ tweet.created_at | utc8 }}</span>
+        </div>
+        <label class="select-chip" for="tweet-{{ tweet.tweet_id }}">
+            <input
+                type="checkbox"
+                id="tweet-{{ tweet.tweet_id }}"
+                name="selected"
+                value="{{ tweet.tweet_id }}"
+                class="tweet-checkbox form-check-input"
+            >
+            <span>选择</span>
+        </label>
+    </div>
+
+    <div class="tweet-body">{{ tweet.text | display_text }}</div>
+
+    {% if tweet.image_paths or tweet.video_paths %}
+        <div class="media-grid">
+            {% if tweet.image_paths %}
+                {% for path in tweet.image_paths.split(',') %}
+                    {% if path.strip() %}
+                        <div class="media-frame">
+                            <img src="/static/media/{{ path.strip() }}" alt="Tweet image">
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+            {% if tweet.video_paths %}
+                {% for path in tweet.video_paths.split(',') %}
+                    {% if path.strip() %}
+                        <div class="media-frame media-frame-video">
+                            <video controls preload="metadata">
+                                <source src="/static/media/{{ path.strip() }}" type="video/mp4">
+                            </video>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+        </div>
+    {% endif %}
+
+    <div class="tweet-card-footer">
+        <div class="actions-row">
+            <a href="{{ url_for('edit_tweet', tweet_id=tweet.tweet_id) }}" class="btn btn-sm btn-primary">编辑</a>
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteTweet({{ tweet.tweet_id }})">删除</button>
+        </div>
+    </div>
+</article>

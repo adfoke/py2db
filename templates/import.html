@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block title %}导入数据 - message Display{% endblock %}
+
+{% block content %}
+<section class="surface-grid two-column content-shell">
+    <div class="panel">
+        <div class="panel-inner">
+            <div class="panel-heading">
+                <div>
+                    <h2 class="panel-title">从网站导入数据</h2>
+                    <div class="panel-subtitle">按页码范围发起异步导入，进度会在下方实时更新。</div>
+                </div>
+            </div>
+
+            <form id="import-web-form" method="post" action="/import_web">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="start_page" class="form-label">起始页码</label>
+                        <input type="number" class="form-control" id="start_page" name="start_page" min="1" value="1" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="end_page" class="form-label">结束页码</label>
+                        <input type="number" class="form-control" id="end_page" name="end_page" min="1" value="10" required>
+                    </div>
+                    <div class="col-12">
+                        <label for="url" class="form-label">API URL</label>
+                        <input type="text" class="form-control" id="url" name="url" value="https://20110814.org/api/gengxin?type=all&page={page}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="img_base_url" class="form-label">Image Base URL</label>
+                        <input type="text" class="form-control" id="img_base_url" name="img_base_url" value="https://oneos.20110814.org/" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="vid_base_url" class="form-label">Video Base URL</label>
+                        <input type="text" class="form-control" id="vid_base_url" name="vid_base_url" value="https://oneos.20110814.org/" required>
+                    </div>
+                </div>
+                <div class="hint-block">
+                    网站总页数在 1200 页以上。建议分批导入，例如每次 50 到 100 页，方便定位异常和回看结果。
+                </div>
+                <div class="toolbar-actions" style="margin-top: 20px;">
+                    <button type="submit" class="btn btn-secondary" id="start-import-btn">开始导入指定页</button>
+                </div>
+            </form>
+
+            <div id="import-progress" class="progress-shell d-none">
+                <div class="panel-heading" style="margin-bottom: 14px;">
+                    <div>
+                        <h3 class="panel-title" style="font-size: 1.2rem;">导入进度</h3>
+                        <div class="panel-subtitle" id="import-status-message">正在准备任务...</div>
+                    </div>
+                </div>
+                <div class="progress" style="height: 22px;">
+                    <div id="import-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%">0%</div>
+                </div>
+                <p class="toolbar-note" id="import-counts" style="margin-top: 14px;"></p>
+            </div>
+        </div>
+    </div>
+
+    <aside class="panel">
+        <div class="panel-inner">
+            <div class="panel-heading">
+                <div>
+                    <h2 class="panel-title">危险操作</h2>
+                    <div class="panel-subtitle">只在明确需要重置项目数据时使用。</div>
+                </div>
+            </div>
+            <div class="info-item" style="margin-bottom: 20px;">
+                <strong>一键清空数据库</strong>
+                <span>会删除全部消息、导入任务和本地媒体文件。执行后无法恢复。</span>
+            </div>
+            <form method="post" action="/clear_database" onsubmit="return confirm('确认清空所有数据和媒体文件？')">
+                <button type="submit" class="btn btn-danger w-100">清空数据库和媒体文件</button>
+            </form>
+        </div>
+    </aside>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('import-web-form');
+    const progressCard = document.getElementById('import-progress');
+    const progressBar = document.getElementById('import-progress-bar');
+    const statusMessage = document.getElementById('import-status-message');
+    const counts = document.getElementById('import-counts');
+    const startButton = document.getElementById('start-import-btn');
+    let statusTimer = null;
+
+    function updateProgress({ status, status_message, progress, imported_count, skipped_count }) {
+        progressBar.style.width = `${progress}%`;
+        progressBar.textContent = `${progress}%`;
+        statusMessage.textContent = status_message || '处理中...';
+        counts.textContent = `已导入 ${imported_count} 条，跳过 ${skipped_count} 条重复数据。`;
+
+        if (status === 'completed') {
+            progressBar.classList.remove('progress-bar-animated');
+            statusMessage.textContent = status_message || '导入完成。';
+            clearInterval(statusTimer);
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 1500);
+        } else if (status === 'error') {
+            progressBar.classList.add('bg-danger');
+            progressBar.classList.remove('progress-bar-animated');
+            statusMessage.textContent = status_message || '导入失败。';
+            clearInterval(statusTimer);
+            startButton.disabled = false;
+        }
+    }
+
+    async function pollStatus(jobId) {
+        try {
+            const response = await fetch(`/import_status/${jobId}?_=${Date.now()}`);
+            if (!response.ok) {
+                throw new Error('无法获取任务状态');
+            }
+            const data = await response.json();
+            if (!data.success) {
+                throw new Error(data.message || '任务状态异常');
+            }
+            updateProgress(data);
+        } catch (error) {
+            statusMessage.textContent = error.message;
+            progressBar.classList.add('bg-danger');
+            progressBar.classList.remove('progress-bar-animated');
+            if (statusTimer) {
+                clearInterval(statusTimer);
+                statusTimer = null;
+            }
+            startButton.disabled = false;
+        }
+    }
+
+    form.addEventListener('submit', async function (event) {
+        event.preventDefault();
+        const formData = new FormData(form);
+        startButton.disabled = true;
+        progressCard.classList.remove('d-none');
+        progressBar.classList.remove('bg-danger');
+        progressBar.classList.add('progress-bar-animated');
+        progressBar.style.width = '0%';
+        progressBar.textContent = '0%';
+        statusMessage.textContent = '正在创建导入任务...';
+        counts.textContent = '';
+
+        try {
+            const response = await fetch('/import_web', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ message: '导入任务创建失败。' }));
+                throw new Error(errorData.message || '导入任务创建失败。');
+            }
+
+            const data = await response.json();
+            if (!data.success) {
+                throw new Error(data.message || '导入任务创建失败。');
+            }
+
+            const jobId = data.job_id;
+            statusMessage.textContent = '任务已创建，开始导入...';
+            if (statusTimer) {
+                clearInterval(statusTimer);
+            }
+            statusTimer = setInterval(() => pollStatus(jobId), 1500);
+        } catch (error) {
+            statusMessage.textContent = error.message;
+            progressBar.classList.add('bg-danger');
+            progressBar.classList.remove('progress-bar-animated');
+            startButton.disabled = false;
+            if (statusTimer) {
+                clearInterval(statusTimer);
+                statusTimer = null;
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

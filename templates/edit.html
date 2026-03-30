@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}编辑消息 - message Display{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+    <span class="page-kicker">Edit</span>
+    <h1 class="page-title">把单条消息编辑页改成一边维护内容、一边核对媒体的双栏工作区。</h1>
+    <p class="page-description">
+        文本、时间、本地上传和外链补充集中在左侧，当前媒体预览放在右侧，编辑时不需要在页面内上下跳跃。
+    </p>
+    <div class="hero-metrics">
+        <div class="metric-pill">
+            <span class="metric-value">@{{ tweet.user }}</span>
+            <span class="metric-label">当前用户</span>
+        </div>
+    </div>
+</section>
+
+<section class="surface-grid two-column">
+    <div class="panel">
+        <div class="panel-inner">
+            <div class="panel-heading">
+                <div>
+                    <h2 class="panel-title">编辑内容</h2>
+                    <div class="panel-subtitle">支持继续上传本地媒体，或补充已有 `/static/media/...` 路径。</div>
+                </div>
+            </div>
+            <form method="post" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label for="user" class="form-label">用户</label>
+                    <input type="text" class="form-control" id="user" name="user" value="{{ tweet.user }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="text" class="form-label">内容</label>
+                    <textarea class="form-control" id="text" name="text" rows="5" required>{{ tweet.text | display_text }}</textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="created_at" class="form-label">创建时间</label>
+                    <input type="text" class="form-control" id="created_at" name="created_at" value="{{ tweet.created_at | utc8 }}" required>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="images" class="form-label">上传图片文件</label>
+                        <input type="file" class="form-control" id="images" name="images" accept="image/*" multiple>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="videos" class="form-label">上传视频文件</label>
+                        <input type="file" class="form-control" id="videos" name="videos" accept="video/*" multiple>
+                    </div>
+                </div>
+                <div class="mb-3" style="margin-top: 16px;">
+                    <label for="image_urls" class="form-label">图片网址或本地路径</label>
+                    <textarea class="form-control" id="image_urls" name="image_urls" rows="4" placeholder="/static/media/image.jpg">{% if tweet.image_paths %}{% for path in tweet.image_paths.split(',') %}{% if path.strip() %}/static/media/{{ path.strip() }}
+{% endif %}{% endfor %}{% endif %}</textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="video_urls" class="form-label">视频网址或本地路径</label>
+                    <textarea class="form-control" id="video_urls" name="video_urls" rows="4" placeholder="/static/media/video.mp4">{% if tweet.video_paths %}{% for path in tweet.video_paths.split(',') %}{% if path.strip() %}/static/media/{{ path.strip() }}
+{% endif %}{% endfor %}{% endif %}</textarea>
+                </div>
+                <div class="hint-block">
+                    每行填写一个地址。写 `/static/media/...` 会直接引用已下载的本地文件，填完整网址则会尝试重新下载到当前消息下。
+                </div>
+                <div class="toolbar-actions" style="margin-top: 20px;">
+                    <button type="submit" class="btn btn-primary">保存更改</button>
+                    <a href="{{ url_for('index') }}" class="btn btn-outline-light-surface">取消</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <aside class="panel">
+        <div class="panel-inner">
+            <div class="panel-heading">
+                <div>
+                    <h2 class="panel-title">当前媒体</h2>
+                    <div class="panel-subtitle">保存前先确认本地预览是否符合预期。</div>
+                </div>
+            </div>
+
+            {% if tweet.image_paths or tweet.video_paths %}
+                {% if tweet.image_paths %}
+                    <div class="info-item" style="margin-bottom: 16px;">
+                        <strong>图片</strong>
+                        <span>当前已关联的图片文件。</span>
+                    </div>
+                    <div class="preview-grid" style="margin-bottom: 20px;">
+                        {% for path in tweet.image_paths.split(',') %}
+                            {% if path.strip() %}
+                                <img src="/static/media/{{ path.strip() }}" alt="Current image">
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                {% if tweet.video_paths %}
+                    <div class="info-item" style="margin-bottom: 16px;">
+                        <strong>视频</strong>
+                        <span>当前已关联的视频文件。</span>
+                    </div>
+                    <div class="preview-grid">
+                        {% for path in tweet.video_paths.split(',') %}
+                            {% if path.strip() %}
+                                <video controls preload="metadata">
+                                    <source src="/static/media/{{ path.strip() }}" type="video/mp4">
+                                </video>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% else %}
+                <div class="empty-state">
+                    <p>这条消息目前还没有关联媒体。可以直接上传文件，或者填入外链和本地路径补齐。</p>
+                </div>
+            {% endif %}
+        </div>
+    </aside>
+</section>
+{% endblock %}
