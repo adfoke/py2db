@@ -2,95 +2,175 @@
 
 {% block title %}新增消息 - message Display{% endblock %}
 
+{% block extra_head %}
+<style>
+    .add-page .add-form {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .add-page .add-form-header {
+        margin-bottom: 28px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid var(--line);
+    }
+
+    .add-page .form-section + .form-section {
+        margin-top: 28px;
+        padding-top: 28px;
+        border-top: 1px solid var(--line);
+    }
+
+    .add-page .form-section-title {
+        margin: 0 0 6px;
+        font-family: var(--heading-font);
+        font-size: 1.15rem;
+        letter-spacing: -0.01em;
+    }
+
+    .add-page .form-section-note {
+        margin: 0 0 18px;
+        color: var(--muted);
+        font-size: 0.92rem;
+        line-height: 1.6;
+    }
+
+    .add-page .form-row {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+    }
+
+    .add-page .form-field {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        min-width: 0;
+    }
+
+    .add-page .form-field + .form-field {
+        margin-top: 16px;
+    }
+
+    .add-page .form-row .form-field + .form-field {
+        margin-top: 0;
+    }
+
+    .add-page .form-label {
+        margin: 0;
+    }
+
+    .add-page .form-control {
+        width: 100%;
+    }
+
+    .add-page .media-block {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        padding: 20px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.56);
+    }
+
+    .add-page .form-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 28px;
+        padding-top: 24px;
+        border-top: 1px solid var(--line);
+    }
+
+    @media (max-width: 768px) {
+        .add-page .form-row {
+            grid-template-columns: 1fr;
+        }
+
+        .add-page .form-actions {
+            justify-content: stretch;
+        }
+
+        .add-page .form-actions .btn {
+            flex: 1 1 auto;
+            text-align: center;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<section class="page-hero">
+<section class="page-hero home-hero">
     <span class="page-kicker">Add</span>
-    <h1 class="page-title">手动新增一条消息，并把图片、视频和创建时间一次填完整。</h1>
-    <p class="page-description">
-        适合补录漏掉的数据。左侧录入内容，右侧查看填写规则，保存后会直接进入消息列表。
-    </p>
-    <div class="hero-metrics">
-        <div class="metric-pill">
-            <span class="metric-value">手动录入</span>
-            <span class="metric-label">新增模式</span>
-        </div>
-    </div>
+    <h1 class="page-title">新增消息</h1>
+    <p class="page-description">手动补录一条消息，支持同时填写文本、时间和媒体。</p>
 </section>
 
-<section class="surface-grid two-column">
-    <div class="panel">
+<section class="home-layout add-page">
+    <div class="panel home-main">
         <div class="panel-inner">
-            <div class="panel-heading">
-                <div>
-                    <h2 class="panel-title">新增内容</h2>
-                    <div class="panel-subtitle">支持本地上传，也支持补充已有 `/static/media/...` 路径或外链。</div>
-                </div>
-            </div>
-            <form method="post" enctype="multipart/form-data">
-                <div class="mb-3">
-                    <label for="user" class="form-label">用户</label>
-                    <input type="text" class="form-control" id="user" name="user" value="{{ form_data.user }}" required>
-                </div>
-                <div class="mb-3">
-                    <label for="text" class="form-label">内容</label>
-                    <textarea class="form-control" id="text" name="text" rows="5" required>{{ form_data.text }}</textarea>
-                </div>
-                <div class="mb-3">
-                    <label for="created_at" class="form-label">创建时间</label>
-                    <input type="text" class="form-control" id="created_at" name="created_at" value="{{ form_data.created_at }}" placeholder="2026-03-29 14:30:00" required>
-                </div>
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label for="images" class="form-label">上传图片文件</label>
-                        <input type="file" class="form-control" id="images" name="images" accept="image/*" multiple>
+            <form class="add-form" method="post" enctype="multipart/form-data">
+                <header class="add-form-header">
+                    <h2 class="panel-title">录入表单</h2>
+                    <p class="panel-subtitle">保存后会进入消息列表，重复内容会被拦截。</p>
+                </header>
+
+                <section class="form-section">
+                    <h3 class="form-section-title">基本信息</h3>
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label for="user" class="form-label">用户</label>
+                            <input type="text" class="form-control" id="user" name="user" value="{{ form_data.user }}" placeholder="@username" required>
+                        </div>
+                        <div class="form-field">
+                            <label for="created_at" class="form-label">创建时间</label>
+                            <input type="text" class="form-control" id="created_at" name="created_at" value="{{ form_data.created_at }}" placeholder="2026-03-29 14:30:00" required>
+                        </div>
                     </div>
-                    <div class="col-md-6">
-                        <label for="videos" class="form-label">上传视频文件</label>
-                        <input type="file" class="form-control" id="videos" name="videos" accept="video/*" multiple>
+                    <div class="form-field">
+                        <label for="text" class="form-label">内容</label>
+                        <textarea class="form-control" id="text" name="text" rows="6" placeholder="输入消息正文" required>{{ form_data.text }}</textarea>
                     </div>
-                </div>
-                <div class="mb-3" style="margin-top: 16px;">
-                    <label for="image_urls" class="form-label">图片网址或本地路径</label>
-                    <textarea class="form-control" id="image_urls" name="image_urls" rows="4" placeholder="/static/media/image.jpg&#10;https://example.com/a.jpg">{{ form_data.image_urls }}</textarea>
-                </div>
-                <div class="mb-3">
-                    <label for="video_urls" class="form-label">视频网址或本地路径</label>
-                    <textarea class="form-control" id="video_urls" name="video_urls" rows="4" placeholder="/static/media/video.mp4&#10;https://example.com/a.mp4">{{ form_data.video_urls }}</textarea>
-                </div>
-                <div class="hint-block">
-                    每行一个地址。写 `/static/media/...` 会直接引用本地文件，填完整网址会尝试下载后再关联。
-                </div>
-                <div class="toolbar-actions" style="margin-top: 20px;">
-                    <button type="submit" class="btn btn-primary">创建消息</button>
+                </section>
+
+                <section class="form-section">
+                    <h3 class="form-section-title">图片</h3>
+                    <p class="form-section-note">上传本地文件，或填写 `/static/media/...` 路径与外链，每行一个地址。</p>
+                    <div class="media-block">
+                        <div class="form-field">
+                            <label for="images" class="form-label">上传图片</label>
+                            <input type="file" class="form-control" id="images" name="images" accept="image/*" multiple>
+                        </div>
+                        <div class="form-field">
+                            <label for="image_urls" class="form-label">图片路径或网址</label>
+                            <textarea class="form-control" id="image_urls" name="image_urls" rows="3" placeholder="/static/media/image.jpg&#10;https://example.com/a.jpg">{{ form_data.image_urls }}</textarea>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="form-section">
+                    <h3 class="form-section-title">视频</h3>
+                    <p class="form-section-note">上传本地文件，或填写 `/static/media/...` 路径与外链，每行一个地址。</p>
+                    <div class="media-block">
+                        <div class="form-field">
+                            <label for="videos" class="form-label">上传视频</label>
+                            <input type="file" class="form-control" id="videos" name="videos" accept="video/*" multiple>
+                        </div>
+                        <div class="form-field">
+                            <label for="video_urls" class="form-label">视频路径或网址</label>
+                            <textarea class="form-control" id="video_urls" name="video_urls" rows="3" placeholder="/static/media/video.mp4&#10;https://example.com/a.mp4">{{ form_data.video_urls }}</textarea>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="form-actions">
                     <a href="{{ url_for('index') }}" class="btn btn-outline-light-surface">取消</a>
+                    <button type="submit" class="btn btn-primary">创建消息</button>
                 </div>
             </form>
         </div>
     </div>
-
-    <aside class="panel">
-        <div class="panel-inner">
-            <div class="panel-heading">
-                <div>
-                    <h2 class="panel-title">填写说明</h2>
-                    <div class="panel-subtitle">按现有数据格式保存，方便后续搜索、编辑和导出。</div>
-                </div>
-            </div>
-            <div class="info-list">
-                <div class="info-item">
-                    <strong>创建时间格式</strong>
-                    <span>建议用 `YYYY-MM-DD HH:MM:SS`，页面按东八区输入，保存时会转成系统存储格式。</span>
-                </div>
-                <div class="info-item">
-                    <strong>图片和视频</strong>
-                    <span>可以混合使用上传文件、本地 `/static/media/...` 路径和外链地址。</span>
-                </div>
-                <div class="info-item">
-                    <strong>重复数据</strong>
-                    <span>如果用户、创建时间、内容三项完全一样，系统会拦截，避免插入重复消息。</span>
-                </div>
-            </div>
-        </div>
-    </aside>
 </section>
 {% endblock %}

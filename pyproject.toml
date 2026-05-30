@@ -5,8 +5,11 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "flask>=3.1.2",
-    "pdfplumber>=0.11.7",
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "python-multipart>=0.0.12",
+    "itsdangerous>=2.2.0",
+    "jinja2>=3.1.0",
     "requests>=2.32.5",
     "beautifulsoup4>=4.12.0",
 ]

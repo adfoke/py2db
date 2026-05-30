@@ -7,6 +7,8 @@
 ```bash
 uv sync
 uv run python main.py
+# 或
+uv run uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
 打开 `http://127.0.0.1:8000`
@@ -21,7 +23,7 @@ uv run python main.py
 
 ## 目录
 
-- `main.py`: 入口
+- `main.py`: FastAPI 入口
 - `twitter.db`: 数据库
 - `static/media/`: 媒体文件
 - `templates/`: 页面模板

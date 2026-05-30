@@ -88,7 +88,7 @@
                     <div class="preview-grid" style="margin-bottom: 20px;">
                         {% for path in tweet.image_paths.split(',') %}
                             {% if path.strip() %}
-                                <img src="/static/media/{{ path.strip() }}" alt="Current image">
+                                <img src="/static/media/{{ path.strip() }}" alt="Current image" loading="lazy" decoding="async">
                             {% endif %}
                         {% endfor %}
                     </div>

@@ -2,80 +2,217 @@
 
 {% block title %}导入数据 - message Display{% endblock %}
 
-{% block content %}
-<section class="surface-grid two-column content-shell">
-    <div class="panel">
-        <div class="panel-inner">
-            <div class="panel-heading">
-                <div>
-                    <h2 class="panel-title">从网站导入数据</h2>
-                    <div class="panel-subtitle">按页码范围发起异步导入，进度会在下方实时更新。</div>
-                </div>
-            </div>
+{% block extra_head %}
+<style>
+    .import-page .import-form {
+        display: flex;
+        flex-direction: column;
+    }
 
-            <form id="import-web-form" method="post" action="/import_web">
-                <div class="row g-3">
-                    <div class="col-md-6">
+    .import-page .import-form-header {
+        margin-bottom: 24px;
+    }
+
+    .import-page .form-row {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+    }
+
+    .import-page .form-field {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        min-width: 0;
+    }
+
+    .import-page .form-field + .form-field {
+        margin-top: 16px;
+    }
+
+    .import-page .form-row .form-field + .form-field {
+        margin-top: 0;
+    }
+
+    .import-page .form-label {
+        margin: 0;
+    }
+
+    .import-page .form-control {
+        width: 100%;
+    }
+
+    .import-page .import-form-actions {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 20px;
+    }
+
+    .import-page .import-progress {
+        margin-top: 28px;
+        padding-top: 28px;
+        border-top: 1px solid var(--line);
+    }
+
+    .import-page .import-progress-header {
+        margin-bottom: 16px;
+    }
+
+    .import-page .import-progress-title {
+        margin: 0 0 6px;
+        font-family: var(--heading-font);
+        font-size: 1.15rem;
+    }
+
+    .import-page .import-progress-note {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.94rem;
+        line-height: 1.6;
+    }
+
+    .import-page .import-progress .progress {
+        height: 22px;
+    }
+
+    .import-page .import-progress-counts {
+        margin: 14px 0 0;
+        color: var(--muted);
+        font-size: 0.94rem;
+    }
+
+    .import-page .danger-section {
+        margin-top: 28px;
+        padding-top: 28px;
+        border-top: 1px solid var(--line);
+    }
+
+    .import-page .danger-section-title {
+        margin: 0 0 6px;
+        font-family: var(--heading-font);
+        font-size: 1.15rem;
+    }
+
+    .import-page .danger-section-note {
+        margin: 0 0 18px;
+        color: var(--muted);
+        font-size: 0.94rem;
+        line-height: 1.6;
+    }
+
+    .import-page .danger-box {
+        padding: 18px 20px;
+        border: 1px solid rgba(165, 58, 58, 0.18);
+        border-radius: 18px;
+        background: rgba(212, 91, 91, 0.06);
+    }
+
+    .import-page .danger-box strong {
+        display: block;
+        margin-bottom: 8px;
+        color: #912f2f;
+    }
+
+    .import-page .danger-box span {
+        display: block;
+        margin-bottom: 16px;
+        color: var(--muted);
+        font-size: 0.92rem;
+        line-height: 1.7;
+    }
+
+    @media (max-width: 768px) {
+        .import-page .form-row {
+            grid-template-columns: 1fr;
+        }
+
+        .import-page .import-form-actions {
+            justify-content: stretch;
+        }
+
+        .import-page .import-form-actions .btn {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="page-hero home-hero">
+    <span class="page-kicker">Import</span>
+    <h1 class="page-title">导入数据</h1>
+    <p class="page-description">按页码范围从网站批量导入消息，进度会实时显示。</p>
+</section>
+
+<section class="home-layout import-page">
+    <div class="panel home-main">
+        <div class="panel-inner">
+            <form id="import-web-form" class="import-form" method="post" action="{{ url_for('import_web') }}">
+                <header class="import-form-header">
+                    <h2 class="panel-title">导入配置</h2>
+                    <p class="panel-subtitle">按页码范围发起异步导入，建议分批执行。</p>
+                </header>
+
+                <div class="form-row">
+                    <div class="form-field">
                         <label for="start_page" class="form-label">起始页码</label>
                         <input type="number" class="form-control" id="start_page" name="start_page" min="1" value="1" required>
                     </div>
-                    <div class="col-md-6">
+                    <div class="form-field">
                         <label for="end_page" class="form-label">结束页码</label>
                         <input type="number" class="form-control" id="end_page" name="end_page" min="1" value="10" required>
                     </div>
-                    <div class="col-12">
-                        <label for="url" class="form-label">API URL</label>
-                        <input type="text" class="form-control" id="url" name="url" value="https://20110814.org/api/gengxin?type=all&page={page}" required>
-                    </div>
-                    <div class="col-md-6">
+                </div>
+
+                <div class="form-field">
+                    <label for="url" class="form-label">API URL</label>
+                    <input type="text" class="form-control" id="url" name="url" value="https://20110814.org/api/gengxin?type=all&page={page}" required>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-field">
                         <label for="img_base_url" class="form-label">Image Base URL</label>
                         <input type="text" class="form-control" id="img_base_url" name="img_base_url" value="https://oneos.20110814.org/" required>
                     </div>
-                    <div class="col-md-6">
+                    <div class="form-field">
                         <label for="vid_base_url" class="form-label">Video Base URL</label>
                         <input type="text" class="form-control" id="vid_base_url" name="vid_base_url" value="https://oneos.20110814.org/" required>
                     </div>
                 </div>
+
                 <div class="hint-block">
-                    网站总页数在 1200 页以上。建议分批导入，例如每次 50 到 100 页，方便定位异常和回看结果。
+                    网站总页数在 1200 页以上。建议每次导入 50 到 100 页，方便定位异常和回看结果。
                 </div>
-                <div class="toolbar-actions" style="margin-top: 20px;">
+
+                <div class="import-form-actions">
                     <button type="submit" class="btn btn-secondary" id="start-import-btn">开始导入指定页</button>
                 </div>
             </form>
 
-            <div id="import-progress" class="progress-shell d-none">
-                <div class="panel-heading" style="margin-bottom: 14px;">
-                    <div>
-                        <h3 class="panel-title" style="font-size: 1.2rem;">导入进度</h3>
-                        <div class="panel-subtitle" id="import-status-message">正在准备任务...</div>
-                    </div>
+            <div id="import-progress" class="import-progress d-none">
+                <div class="import-progress-header">
+                    <h3 class="import-progress-title">导入进度</h3>
+                    <p class="import-progress-note" id="import-status-message">正在准备任务...</p>
                 </div>
-                <div class="progress" style="height: 22px;">
+                <div class="progress">
                     <div id="import-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%">0%</div>
                 </div>
-                <p class="toolbar-note" id="import-counts" style="margin-top: 14px;"></p>
+                <p class="import-progress-counts" id="import-counts"></p>
             </div>
+
+            <section class="danger-section">
+                <h3 class="danger-section-title">危险操作</h3>
+                <p class="danger-section-note">只在明确需要重置项目数据时使用。</p>
+                <div class="danger-box">
+                    <strong>一键清空数据库</strong>
+                    <span>会删除全部消息、导入任务和本地媒体文件，执行后无法恢复。</span>
+                    <form method="post" action="{{ url_for('clear_database') }}" onsubmit="return confirm('确认清空所有数据和媒体文件？')">
+                        <button type="submit" class="btn btn-danger">清空数据库和媒体文件</button>
+                    </form>
+                </div>
+            </section>
         </div>
     </div>
-
-    <aside class="panel">
-        <div class="panel-inner">
-            <div class="panel-heading">
-                <div>
-                    <h2 class="panel-title">危险操作</h2>
-                    <div class="panel-subtitle">只在明确需要重置项目数据时使用。</div>
-                </div>
-            </div>
-            <div class="info-item" style="margin-bottom: 20px;">
-                <strong>一键清空数据库</strong>
-                <span>会删除全部消息、导入任务和本地媒体文件。执行后无法恢复。</span>
-            </div>
-            <form method="post" action="/clear_database" onsubmit="return confirm('确认清空所有数据和媒体文件？')">
-                <button type="submit" class="btn btn-danger w-100">清空数据库和媒体文件</button>
-            </form>
-        </div>
-    </aside>
 </section>
 {% endblock %}
 
@@ -148,7 +285,7 @@ document.addEventListener('DOMContentLoaded', function () {
         counts.textContent = '';
 
         try {
-            const response = await fetch('/import_web', {
+            const response = await fetch('{{ url_for("import_web") }}', {
                 method: 'POST',
                 body: formData,
                 headers: {

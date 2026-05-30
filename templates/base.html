@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}message Display{% endblock %}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         :root {
             --bg: #f4efe8;
@@ -59,6 +58,7 @@
 
         .app-shell {
             max-width: 1240px;
+            margin: 0 auto;
             padding: 24px 16px 40px;
         }
 
@@ -131,7 +131,8 @@
         .flash-stack {
             display: grid;
             gap: 12px;
-            margin-bottom: 22px;
+            max-width: 980px;
+            margin: 0 auto 22px;
         }
 
         .flash-card {
@@ -146,7 +147,8 @@
         .page-hero {
             position: relative;
             overflow: hidden;
-            margin-bottom: 24px;
+            max-width: 980px;
+            margin: 0 auto 24px;
             padding: 34px;
             border: 1px solid rgba(255, 255, 255, 0.66);
             border-radius: 32px;
@@ -232,6 +234,8 @@
         .surface-grid {
             display: grid;
             gap: 20px;
+            max-width: 980px;
+            margin: 0 auto;
         }
 
         .surface-grid.two-column {
@@ -542,6 +546,12 @@
             flex-wrap: wrap;
             gap: 10px;
             margin: 26px 0 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .page-item {
+            list-style: none;
         }
 
         .page-link {
@@ -620,21 +630,185 @@
         }
 
         .footer-note {
-            margin-top: 18px;
+            max-width: 980px;
+            margin: 18px auto 0;
             color: var(--muted);
             font-size: 0.9rem;
             text-align: center;
         }
 
+        .form-page {
+            max-width: 980px;
+            margin: 0 auto;
+        }
+
+        .form-page-grid {
+            display: grid;
+            gap: 20px;
+            align-items: start;
+        }
+
+        .form-page-grid.with-aside {
+            grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+        }
+
+        .form-page-aside {
+            position: sticky;
+            top: 96px;
+        }
+
+        .form-section {
+            padding-top: 22px;
+            margin-top: 22px;
+            border-top: 1px solid var(--line);
+        }
+
+        .form-section:first-child {
+            padding-top: 0;
+            margin-top: 0;
+            border-top: 0;
+        }
+
+        .form-section-title {
+            margin-bottom: 16px;
+            font-family: var(--heading-font);
+            font-size: 1.12rem;
+            letter-spacing: -0.01em;
+        }
+
+        .form-section-note {
+            margin: -8px 0 16px;
+            color: var(--muted);
+            font-size: 0.92rem;
+            line-height: 1.6;
+        }
+
+        .form-row-2 {
+            display: grid;
+            gap: 1rem;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .media-upload-grid {
+            display: grid;
+            gap: 1rem;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .media-blocks {
+            display: grid;
+            gap: 16px;
+            grid-template-columns: 1fr;
+        }
+
+        .media-panel {
+            padding: 18px;
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.56);
+        }
+
+        .form-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid var(--line);
+        }
+
+        .row {
+            display: grid;
+            gap: 1rem;
+            grid-template-columns: 1fr;
+        }
+
+        .mb-3 {
+            margin-bottom: 1rem;
+        }
+
+        .d-none {
+            display: none !important;
+        }
+
+        .d-flex {
+            display: flex;
+        }
+
+        .align-items-end {
+            align-items: flex-end;
+        }
+
+        .w-100 {
+            width: 100%;
+        }
+
+        .form-check-input {
+            width: 1rem;
+            height: 1rem;
+            margin: 0;
+            flex-shrink: 0;
+        }
+
+        @media (min-width: 768px) {
+            .row.g-3 {
+                grid-template-columns: repeat(12, minmax(0, 1fr));
+            }
+
+            .col-md-1 { grid-column: span 1; }
+            .col-md-2 { grid-column: span 2; }
+            .col-md-3 { grid-column: span 3; }
+            .col-md-4 { grid-column: span 4; }
+            .col-md-6 { grid-column: span 6; }
+            .col-12 { grid-column: span 12; }
+        }
+
+        .progress-bar-striped {
+            background-image: linear-gradient(
+                45deg,
+                rgba(255, 255, 255, 0.15) 25%,
+                transparent 25%,
+                transparent 50%,
+                rgba(255, 255, 255, 0.15) 50%,
+                rgba(255, 255, 255, 0.15) 75%,
+                transparent 75%,
+                transparent
+            );
+            background-size: 1rem 1rem;
+        }
+
+        .progress-bar-animated {
+            animation: progress-bar-stripes 1s linear infinite;
+        }
+
+        .progress-bar.bg-danger {
+            background: linear-gradient(135deg, #d45b5b 0%, #912f2f 100%);
+        }
+
+        @keyframes progress-bar-stripes {
+            0% { background-position-x: 1rem; }
+            100% { background-position-x: 0; }
+        }
+
         @media (max-width: 992px) {
             .surface-grid.two-column,
-            .split-panels {
+            .split-panels,
+            .form-page-grid.with-aside {
                 grid-template-columns: 1fr;
             }
 
+            .form-page-aside {
+                position: static;
+            }
         }
 
         @media (max-width: 768px) {
+            .form-row-2,
+            .media-upload-grid,
+            .media-blocks {
+                grid-template-columns: 1fr;
+            }
+
             .app-shell {
                 padding: 16px 12px 28px;
             }
@@ -673,7 +847,7 @@
     {% block extra_head %}{% endblock %}
 </head>
 <body>
-    <main class="container app-shell">
+    <main class="app-shell">
         <nav class="topbar">
             <a href="{{ url_for('index') }}" class="brand-lockup">
                 <span class="brand-kicker">Archive Studio</span>
@@ -681,28 +855,25 @@
                 <span class="brand-subtitle">让消息数据管理更清晰、更顺手。</span>
             </a>
             <div class="nav-pills-shell">
-                <a class="nav-link-pill {% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}">首页</a>
-                <a class="nav-link-pill {% if request.endpoint == 'add_tweet' %}active{% endif %}" href="{{ url_for('add_tweet') }}">新增</a>
-                <a class="nav-link-pill {% if request.endpoint == 'search' %}active{% endif %}" href="{{ url_for('search') }}">搜索</a>
-                <a class="nav-link-pill {% if request.endpoint == 'import_data' %}active{% endif %}" href="{{ url_for('import_data') }}">导入</a>
-                <a class="nav-link-pill {% if request.endpoint == 'export_messages' %}active{% endif %}" href="{{ url_for('export_messages') }}">导出</a>
+                <a class="nav-link-pill {% if endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}">首页</a>
+                <a class="nav-link-pill {% if endpoint == 'add_tweet' %}active{% endif %}" href="{{ url_for('add_tweet') }}">新增</a>
+                <a class="nav-link-pill {% if endpoint == 'search' %}active{% endif %}" href="{{ url_for('search') }}">搜索</a>
+                <a class="nav-link-pill {% if endpoint == 'import_data' %}active{% endif %}" href="{{ url_for('import_data') }}">导入</a>
+                <a class="nav-link-pill {% if endpoint == 'export_messages' %}active{% endif %}" href="{{ url_for('export_messages') }}">导出</a>
             </div>
         </nav>
 
-        {% with messages = get_flashed_messages() %}
-            {% if messages %}
-                <div class="flash-stack">
-                    {% for message in messages %}
-                        <div class="flash-card">{{ message }}</div>
-                    {% endfor %}
-                </div>
-            {% endif %}
-        {% endwith %}
+        {% if messages %}
+            <div class="flash-stack">
+                {% for message in messages %}
+                    <div class="flash-card">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
 
         {% block content %}{% endblock %}
         <div class="footer-note">Built for quick review, search and cleanup of imported message archives.</div>
     </main>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

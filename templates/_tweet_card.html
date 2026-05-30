@@ -24,7 +24,7 @@
                 {% for path in tweet.image_paths.split(',') %}
                     {% if path.strip() %}
                         <div class="media-frame">
-                            <img src="/static/media/{{ path.strip() }}" alt="Tweet image">
+                            <img src="/static/media/{{ path.strip() }}" alt="Tweet image" loading="lazy" decoding="async">
                         </div>
                     {% endif %}
                 {% endfor %}
