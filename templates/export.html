@@ -2,79 +2,217 @@
 
 {% block title %}导出数据 - message Display{% endblock %}
 
-{% block content %}
-<section class="surface-grid two-column content-shell">
-    <div class="panel">
-        <div class="panel-inner">
-            <div class="panel-heading">
-                <div>
-                    <h2 class="panel-title">导出消息</h2>
-                    <div class="panel-subtitle">按时间范围导出成 Markdown，并把媒体复制到独立文件夹。</div>
-                </div>
-            </div>
+{% block extra_head %}
+<style>
+    .export-page .export-form {
+        display: flex;
+        flex-direction: column;
+    }
 
-            <form method="post">
-                <div class="row g-3">
-                    <div class="col-md-4">
-                        <label for="start_date" class="form-label">开始日期</label>
-                        <input type="date" class="form-control" id="start_date" name="start_date" value="{{ start_date }}" required>
+    .export-page .export-form-header {
+        margin-bottom: 28px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid var(--line);
+    }
+
+    .export-page .form-section + .form-section {
+        margin-top: 28px;
+        padding-top: 28px;
+        border-top: 1px solid var(--line);
+    }
+
+    .export-page .form-section-title {
+        margin: 0 0 6px;
+        font-family: var(--heading-font);
+        font-size: 1.15rem;
+        letter-spacing: -0.01em;
+    }
+
+    .export-page .form-section-note {
+        margin: 0 0 18px;
+        color: var(--muted);
+        font-size: 0.92rem;
+        line-height: 1.6;
+    }
+
+    .export-page .form-row {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+    }
+
+    .export-page .form-field {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        min-width: 0;
+    }
+
+    .export-page .form-label {
+        margin: 0;
+    }
+
+    .export-page .form-control {
+        width: 100%;
+    }
+
+    .export-page .export-note-block {
+        display: grid;
+        gap: 12px;
+        padding: 20px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.56);
+    }
+
+    .export-page .export-note-item {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        color: var(--muted);
+        font-size: 0.94rem;
+        line-height: 1.7;
+    }
+
+    .export-page .export-note-item strong {
+        color: var(--text);
+    }
+
+    .export-page .result-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+    }
+
+    .export-page .result-path {
+        word-break: break-all;
+    }
+
+    .export-page .result-path-item {
+        grid-column: 1 / -1;
+    }
+
+    .export-page .form-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 28px;
+        padding-top: 24px;
+        border-top: 1px solid var(--line);
+    }
+
+    @media (max-width: 768px) {
+        .export-page .form-row,
+        .export-page .result-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .export-page .form-actions {
+            justify-content: stretch;
+        }
+
+        .export-page .form-actions .btn {
+            flex: 1 1 auto;
+            text-align: center;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="page-hero home-hero">
+    <span class="page-kicker">Export</span>
+    <h1 class="page-title">导出数据</h1>
+    <p class="page-description">按时间范围导出 Markdown，并同步复制对应图片和视频文件。</p>
+</section>
+
+<section class="home-layout export-page">
+    <div class="panel home-main">
+        <div class="panel-inner">
+            <form class="export-form" method="post">
+                <header class="export-form-header">
+                    <h2 class="panel-title">导出表单</h2>
+                    <p class="panel-subtitle">选择开始和结束日期，可选填写导出目录名。</p>
+                </header>
+
+                <section class="form-section">
+                    <h3 class="form-section-title">时间范围</h3>
+                    <p class="form-section-note">日期按本地时间筛选，结束日期会包含当天 23:59:59 前的消息。</p>
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label for="start_date" class="form-label">开始日期</label>
+                            <input type="date" class="form-control" id="start_date" name="start_date" value="{{ start_date }}" required>
+                        </div>
+                        <div class="form-field">
+                            <label for="end_date" class="form-label">结束日期</label>
+                            <input type="date" class="form-control" id="end_date" name="end_date" value="{{ end_date }}" required>
+                        </div>
+                        <div class="form-field">
+                            <label for="export_name" class="form-label">导出目录名</label>
+                            <input type="text" class="form-control" id="export_name" name="export_name" value="{{ export_name }}" placeholder="可选，默认自动生成">
+                        </div>
                     </div>
-                    <div class="col-md-4">
-                        <label for="end_date" class="form-label">结束日期</label>
-                        <input type="date" class="form-control" id="end_date" name="end_date" value="{{ end_date }}" required>
+                </section>
+
+                <section class="form-section">
+                    <h3 class="form-section-title">导出内容</h3>
+                    <p class="form-section-note">导出结果会放到项目的 `exports/` 目录下。</p>
+                    <div class="export-note-block">
+                        <div class="export-note-item">
+                            <strong>Markdown</strong>
+                            <span>生成 `export.md`，每条消息包含时间、用户、正文和媒体引用。</span>
+                        </div>
+                        <div class="export-note-item">
+                            <strong>图片</strong>
+                            <span>复制到导出目录的 `images/` 文件夹。</span>
+                        </div>
+                        <div class="export-note-item">
+                            <strong>视频</strong>
+                            <span>复制到导出目录的 `videos/` 文件夹。</span>
+                        </div>
                     </div>
-                    <div class="col-md-4">
-                        <label for="export_name" class="form-label">导出目录名</label>
-                        <input type="text" class="form-control" id="export_name" name="export_name" value="{{ export_name }}" placeholder="可选，默认自动生成">
-                    </div>
-                </div>
-                <div class="hint-block" style="margin-top: 16px;">
-                    导出后会生成 `export.md`，图片放到 `images/`，视频放到 `videos/`。
-                </div>
-                <div class="toolbar-actions" style="margin-top: 20px;">
-                    <button type="submit" class="btn btn-secondary">开始导出</button>
+                </section>
+
+                <div class="form-actions">
+                    <a href="{{ url_for('index') }}" class="btn btn-outline-light-surface">返回首页</a>
+                    <button type="submit" class="btn btn-primary">开始导出</button>
                 </div>
             </form>
+
+            <section class="form-section">
+                <h3 class="form-section-title">导出结果</h3>
+                <p class="form-section-note">导出完成后，这里会显示文件位置和统计。</p>
+                {% if export_result %}
+                    <div class="result-grid">
+                        <div class="info-item result-path-item">
+                            <strong>导出目录</strong>
+                            <span class="result-path">{{ export_result.export_dir }}</span>
+                        </div>
+                        <div class="info-item result-path-item">
+                            <strong>Markdown 文件</strong>
+                            <span class="result-path">{{ export_result.markdown_path }}</span>
+                        </div>
+                        <div class="info-item">
+                            <strong>消息数量</strong>
+                            <span>{{ export_result.message_count }} 条</span>
+                        </div>
+                        <div class="info-item">
+                            <strong>图片数量</strong>
+                            <span>{{ export_result.image_count }} 个</span>
+                        </div>
+                        <div class="info-item">
+                            <strong>视频数量</strong>
+                            <span>{{ export_result.video_count }} 个</span>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <p>选择时间范围后开始导出。导出的 Markdown 会使用相对路径引用媒体文件。</p>
+                    </div>
+                {% endif %}
+            </section>
         </div>
     </div>
-
-    <aside class="panel">
-        <div class="panel-inner">
-            <div class="panel-heading">
-                <div>
-                    <h2 class="panel-title">导出结果</h2>
-                    <div class="panel-subtitle">导出完成后，这里会显示文件位置和统计。</div>
-                </div>
-            </div>
-            {% if export_result %}
-                <div class="info-list">
-                    <div class="info-item">
-                        <strong>导出目录</strong>
-                        <span>{{ export_result.export_dir }}</span>
-                    </div>
-                    <div class="info-item">
-                        <strong>Markdown 文件</strong>
-                        <span>{{ export_result.markdown_path }}</span>
-                    </div>
-                    <div class="info-item">
-                        <strong>消息数量</strong>
-                        <span>{{ export_result.message_count }} 条</span>
-                    </div>
-                    <div class="info-item">
-                        <strong>图片数量</strong>
-                        <span>{{ export_result.image_count }} 个</span>
-                    </div>
-                    <div class="info-item">
-                        <strong>视频数量</strong>
-                        <span>{{ export_result.video_count }} 个</span>
-                    </div>
-                </div>
-            {% else %}
-                <div class="empty-state">
-                    <p>选择时间范围后开始导出。导出的 Markdown 会使用相对路径引用媒体文件。</p>
-                </div>
-            {% endif %}
-        </div>
-    </aside>
 </section>
 {% endblock %}
