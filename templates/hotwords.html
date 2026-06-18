@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+
+{% block title %}热词分析 - message Display{% endblock %}
+
+{% block extra_head %}
+<style>
+    .hotwords-page .analysis-note {
+        margin: 0 0 20px;
+        color: var(--muted);
+        font-size: 0.94rem;
+        line-height: 1.7;
+    }
+
+    .hotwords-page .date-form {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+        gap: 16px;
+        align-items: end;
+        margin-bottom: 28px;
+        padding-bottom: 24px;
+        border-bottom: 1px solid var(--line);
+    }
+
+    .hotwords-page .form-field {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        min-width: 0;
+    }
+
+    .hotwords-page .form-label {
+        margin: 0;
+    }
+
+    .hotwords-page .form-control {
+        width: 100%;
+    }
+
+    .hotwords-page .words-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .hotwords-page .words-table th,
+    .hotwords-page .words-table td {
+        padding: 12px 14px;
+        text-align: left;
+        border-bottom: 1px solid var(--line);
+    }
+
+    .hotwords-page .words-table th {
+        color: var(--muted);
+        font-size: 0.88rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+    }
+
+    .hotwords-page .words-table tbody tr:hover {
+        background: rgba(255, 255, 255, 0.45);
+    }
+
+    .hotwords-page .rank-cell {
+        width: 72px;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+    }
+
+    .hotwords-page .word-cell {
+        font-weight: 600;
+        color: var(--accent-deep);
+    }
+
+    .hotwords-page .count-cell,
+    .hotwords-page .percent-cell {
+        width: 120px;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .hotwords-page .bar-cell {
+        min-width: 180px;
+    }
+
+    .hotwords-page .word-bar {
+        height: 8px;
+        border-radius: 999px;
+        background: rgba(122, 92, 62, 0.12);
+        overflow: hidden;
+    }
+
+    .hotwords-page .word-bar-fill {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--accent), var(--accent-deep));
+    }
+
+    @media (max-width: 768px) {
+        .hotwords-page .date-form {
+            grid-template-columns: 1fr;
+        }
+
+        .hotwords-page .bar-cell {
+            display: none;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="page-hero home-hero">
+    <span class="page-kicker">Analysis</span>
+    <h1 class="page-title">热词分析</h1>
+    <p class="page-description">统计最近 3 个月消息中的高频词。含「答：」的消息只分析回答部分，其余消息分析全文。</p>
+    <div class="hero-metrics">
+        <div class="metric-pill">
+            <span class="metric-value">{{ analysis.message_count }}</span>
+            <span class="metric-label">消息数</span>
+        </div>
+        <div class="metric-pill">
+            <span class="metric-value">{{ analysis.answer_count }}</span>
+            <span class="metric-label">含答消息</span>
+        </div>
+        <div class="metric-pill">
+            <span class="metric-value">{{ analysis.unique_words }}</span>
+            <span class="metric-label">不同词汇</span>
+        </div>
+        <div class="metric-pill">
+            <span class="metric-value">{{ top_word }}</span>
+            <span class="metric-label">最高频词</span>
+        </div>
+    </div>
+</section>
+
+<section class="home-layout hotwords-page">
+    <div class="panel home-main">
+        <div class="panel-inner">
+            <form class="date-form" method="get" action="{{ url_for('hotwords') }}">
+                <div class="form-field">
+                    <label for="start_date" class="form-label">开始日期</label>
+                    <input type="date" class="form-control" id="start_date" name="start_date" value="{{ start_date }}" required>
+                </div>
+                <div class="form-field">
+                    <label for="end_date" class="form-label">结束日期</label>
+                    <input type="date" class="form-control" id="end_date" name="end_date" value="{{ end_date }}" required>
+                </div>
+                <button type="submit" class="btn btn-primary">重新分析</button>
+            </form>
+
+            <p class="analysis-note">
+                分析区间：{{ start_date }} 至 {{ end_date }}（本地时间）。共提取 {{ analysis.total_tokens }} 个词频单位。
+            </p>
+
+            {% if analysis.top_words %}
+                <div class="toolbar" style="margin-bottom: 16px;">
+                    <div>
+                        <h2 class="panel-title">热词排行</h2>
+                        <div class="toolbar-note">展示前 {{ analysis.top_words|length }} 个高频词。</div>
+                    </div>
+                </div>
+                <table class="words-table">
+                    <thead>
+                        <tr>
+                            <th>排名</th>
+                            <th>词汇</th>
+                            <th>次数</th>
+                            <th>占比</th>
+                            <th class="bar-cell">分布</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in analysis.top_words %}
+                            <tr>
+                                <td class="rank-cell">{{ loop.index }}</td>
+                                <td class="word-cell">{{ item.word }}</td>
+                                <td class="count-cell">{{ item.count }}</td>
+                                <td class="percent-cell">{{ item.percent }}%</td>
+                                <td class="bar-cell">
+                                    <span class="word-bar" aria-hidden="true">
+                                        <span class="word-bar-fill" style="width: {{ item.percent }}%;"></span>
+                                    </span>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% elif analysis.message_count == 0 %}
+                <div class="empty-state">
+                    <p>该时间范围内没有消息。</p>
+                </div>
+            {% elif analysis.analyzed_count == 0 %}
+                <div class="empty-state">
+                    <p>该时间范围内有 {{ analysis.message_count }} 条消息，但清洗后没有可分析的正文内容。</p>
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <p>该时间范围内有 {{ analysis.analyzed_count }} 条可分析消息，但未能提取有效热词。</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

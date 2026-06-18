@@ -4,9 +4,11 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 import sqlite3
+from collections import Counter
 from datetime import datetime, timedelta, timezone
 import os
 import re
+import jieba
 import requests
 import threading
 import uuid
@@ -82,6 +84,7 @@ ROUTE_PATHS = {
     'add_tweet': '/add',
     'import_data': '/import',
     'export_messages': '/export',
+    'hotwords': '/hotwords',
     'edit_tweet': '/edit/{tweet_id}',
     'batch_delete': '/batch_delete',
     'delete_tweet': '/delete/{tweet_id}',
@@ -168,6 +171,119 @@ def clean_message_text(value):
     text = normalize_message_text(value).replace('\n', ' ')
     text = TCO_URL_RE.sub('', text)
     return re.sub(r'\s{2,}', ' ', text).strip()
+
+
+HOTWORDS_DEFAULT_RANGE_DAYS = 90
+HOTWORDS_MAX_RANGE_DAYS = 365
+HOTWORDS_STOPWORDS = {
+    '的', '了', '是', '在', '和', '与', '及', '或', '等', '也', '都', '就', '而', '但', '被', '把',
+    '对', '从', '到', '为', '以', '中', '上', '下', '有', '无', '不', '很', '更', '最', '这', '那',
+    '其', '此', '一个', '一些', '可以', '可能', '已经', '因为', '所以', '如果', '虽然', '然而',
+    '以及', '或者', '但是', '然后', '这样', '那样', '什么', '怎么', '为什么', '如何', '我们',
+    '他们', '它们', '自己', '没有', '不是', '就是', '还是', '还有', '这种', '那种', '这个',
+    '那个', '这些', '那些', '进行', '通过', '根据', '关于', '对于', '由于', '同时', '此外',
+    '另外', '其中', '包括', '主要', '目前', '之后', '之前', '以来', '来说', '方面', '情况',
+    '问题', '时候', '地方', '知道', '觉得', '认为', '表示', '现在', '以后', '一直', '只是',
+    '只有', '只能', '还会', '已经', '天天', '人类', '人们', '大家', '东西', '哪怕', '为啥',
+}
+
+
+def extract_analysis_text(value, *, cleaned=None):
+    text = cleaned if cleaned is not None else clean_message_text(value)
+    if '答：' in text:
+        return text.split('答：', 1)[1].strip()
+    return text
+
+
+def parse_utc8_date(date_text):
+    text = (date_text or '').strip()
+    if not text:
+        return None
+    try:
+        return datetime.strptime(text, '%Y-%m-%d').date()
+    except ValueError:
+        return None
+
+
+def default_hotwords_date_range():
+    end = datetime.now(UTC_PLUS_8).date()
+    start = end - timedelta(days=HOTWORDS_DEFAULT_RANGE_DAYS)
+    return start.strftime('%Y-%m-%d'), end.strftime('%Y-%m-%d')
+
+
+def resolve_hotwords_date_range(start_date, end_date):
+    default_start, default_end = default_hotwords_date_range()
+    start_text = (start_date or '').strip() or default_start
+    end_text = (end_date or '').strip() or default_end
+
+    start = parse_utc8_date(start_text)
+    end = parse_utc8_date(end_text)
+    if start is None or end is None:
+        return default_start, default_end, '日期格式无效，已恢复为默认时间范围。'
+    if start > end:
+        return default_start, default_end, '开始日期不能晚于结束日期，已恢复为默认时间范围。'
+    if (end - start).days > HOTWORDS_MAX_RANGE_DAYS:
+        start = end - timedelta(days=HOTWORDS_MAX_RANGE_DAYS)
+        return (
+            start.strftime('%Y-%m-%d'),
+            end_text,
+            f'分析时间范围已限制为最近 {HOTWORDS_MAX_RANGE_DAYS} 天。',
+        )
+    return start_text, end_text, ''
+
+
+def tokenize_for_hotwords(text):
+    tokens = []
+    for word in jieba.cut(text):
+        word = word.strip()
+        if len(word) < 2:
+            continue
+        if word in HOTWORDS_STOPWORDS:
+            continue
+        if re.fullmatch(r'[\W\d_]+', word):
+            continue
+        tokens.append(word)
+    return tokens
+
+
+def compute_hot_words(start_date, end_date, top_n=50):
+    query_start, query_end = utc8_date_range_to_storage_bounds(start_date, end_date)
+    conn = get_db_connection()
+    rows = conn.execute(
+        'SELECT text FROM tweets WHERE created_at >= ? AND created_at <= ?',
+        (query_start, query_end),
+    ).fetchall()
+    conn.close()
+
+    counter = Counter()
+    message_count = 0
+    answer_count = 0
+    analyzed_count = 0
+    for row in rows:
+        message_count += 1
+        raw_text = clean_message_text(row['text'])
+        if '答：' in raw_text:
+            answer_count += 1
+        text = extract_analysis_text(row['text'], cleaned=raw_text)
+        if not text:
+            continue
+        analyzed_count += 1
+        counter.update(tokenize_for_hotwords(text))
+
+    total_tokens = sum(counter.values())
+    top_words = []
+    for word, count in counter.most_common(top_n):
+        percent = round(count / total_tokens * 100, 2) if total_tokens else 0
+        top_words.append({'word': word, 'count': count, 'percent': percent})
+
+    return {
+        'message_count': message_count,
+        'answer_count': answer_count,
+        'analyzed_count': analyzed_count,
+        'unique_words': len(counter),
+        'total_tokens': total_tokens,
+        'top_words': top_words,
+    }
 
 
 def build_import_text(value):
@@ -481,6 +597,7 @@ def init_db():
         video_paths TEXT DEFAULT ""
     )''')
     conn.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_tweets_unique ON tweets(user, created_at, text)')
+    conn.execute('CREATE INDEX IF NOT EXISTS idx_tweets_created_at ON tweets(created_at)')
     conn.execute('''CREATE TABLE IF NOT EXISTS import_jobs (
         job_id TEXT PRIMARY KEY,
         status TEXT NOT NULL,
@@ -946,6 +1063,28 @@ def export_messages_get(request: Request):
         start_date='',
         end_date='',
         export_name='',
+    )
+
+
+@app.get('/hotwords', response_class=HTMLResponse, name='hotwords')
+def hotwords_get(
+    request: Request,
+    start_date: str = Query(''),
+    end_date: str = Query(''),
+):
+    start_date, end_date, range_error = resolve_hotwords_date_range(start_date, end_date)
+    if range_error:
+        flash(request, range_error)
+    analysis = compute_hot_words(start_date, end_date)
+    top_word = analysis['top_words'][0]['word'] if analysis['top_words'] else '—'
+    return render(
+        request,
+        'hotwords.html',
+        'hotwords',
+        start_date=start_date,
+        end_date=end_date,
+        analysis=analysis,
+        top_word=top_word,
     )
 
 
